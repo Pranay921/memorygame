@@ -63,39 +63,69 @@ def serve_static(path):
 @app.route('/api/generate-word', methods=['POST'])
 def generate_word():
     try:
+        # Expanded fallback word list for more variety
+        fallback_words = ["MEMORY", "PUZZLE", "GENIUS", "WIZARD", "MASTER", "RECALL", "MENTAL", "FOCUS", 
+                          "BRAIN", "SMART", "THINK", "LOGIC", "REASON", "WISDOM", "CLEVER", "BRIGHT", 
+                          "SHARP", "QUICK", "ALERT", "AWARE", "NIMBLE", "AGILE", "ACTIVE", "DYNAMIC"]
+        
+        # If model is not initialized, use fallback immediately
         if not model:
             logger.error("Model not initialized in generate_word")
-            return jsonify({'error': 'Model not initialized'}), 500
+            import random
+            word = random.choice(fallback_words)
+            logger.info(f"Using fallback word (no model): {word}")
+            return jsonify({'word': word})
             
-        word_prompt = """
-        Generate a single random word:
-        - Word length: 6-8-10 letters
-        - Must be not common and not easily recognizable
-        - Return ONLY the word in UPPERCASE, no other text or punctuation
-        Example response format: APPLE
-        """
-        
-        logger.info("Generating word...")
-        response, error = generate_with_retry(word_prompt)
-        if error:
-            logger.error(f"Error generating word: {error}")
-            return jsonify({'error': error}), 500
+        # Try to generate a word with the API
+        try:
+            word_prompt = """
+            Generate a single random word:
+            - Word length: 5-8 letters
+            - Must be common and easily recognizable
+            - Return ONLY the word in UPPERCASE, no other text or punctuation
+            Example response format: APPLE
+            """
             
-        if not response or not response.text:
-            logger.error("No word generated")
-            return jsonify({'error': 'No word generated'}), 500
+            logger.info("Generating word...")
+            response, error = generate_with_retry(word_prompt)
             
-        word = response.text.strip().split()[0].upper()
-        logger.info(f"Generated word: {word}")
-        
-        if not word.isalpha() or len(word) < 4 or len(word) > 10:
-            logger.error(f"Invalid word generated: {word}")
-            return jsonify({'error': 'Invalid word generated'}), 500
+            # If there's an error or no response, use fallback
+            if error or not response or not response.text:
+                import random
+                word = random.choice(fallback_words)
+                logger.info(f"Using fallback word (API error): {word}")
+                return jsonify({'word': word})
+                
+            # Process the word from the API response
+            word = response.text.strip().upper()
+            # Clean the word - remove any non-alphabetic characters
+            word = ''.join(c for c in word if c.isalpha())
             
-        return jsonify({'word': word})
+            # Validate the word
+            if not word or len(word) < 4 or len(word) > 10:
+                import random
+                word = random.choice(fallback_words)
+                logger.info(f"Using fallback word (invalid word): {word}")
+            else:
+                logger.info(f"Generated word: {word}")
+                
+            return jsonify({'word': word})
+            
+        except Exception as inner_e:
+            logger.error(f"Inner exception in generate_word: {str(inner_e)}")
+            import random
+            word = random.choice(fallback_words)
+            logger.info(f"Using fallback word (inner exception): {word}")
+            return jsonify({'word': word})
+            
     except Exception as e:
         logger.error(f"Error in generate_word: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        # Return a fallback word even in case of exceptions
+        fallback_words = ["MEMORY", "PUZZLE", "GENIUS", "WIZARD", "MASTER"]
+        import random
+        word = random.choice(fallback_words)
+        logger.info(f"Using fallback word (outer exception): {word}")
+        return jsonify({'word': word})
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
@@ -155,4 +185,5 @@ def health_check():
 app = app
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    port = int(os.environ.get("PORT", 0))
+    app.run(debug=True, host="0.0.0.0", port=port)

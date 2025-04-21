@@ -1,707 +1,317 @@
 // Add these functions at the beginning of your script
-        function showGame(gameId) {
-            document.getElementById('gameSelection').classList.add('hidden');
-            document.getElementById(gameId).classList.remove('hidden');
-        }
+function showGame(gameId) {
+    document.getElementById('gameSelection').classList.add('hidden');
+    document.getElementById(gameId).classList.remove('hidden');
+}
 
-        function showGameSelection() {
-            // Hide all game sections
-            document.getElementById('memoryGame').classList.add('hidden');
-            document.getElementById('wordGame').classList.add('hidden');
-            document.getElementById('numberGame').classList.add('hidden');
-            document.getElementById('visualGame').classList.add('hidden');
-            document.getElementById('reactionGame').classList.add('hidden');
-            document.getElementById('chatbotGame').classList.add('hidden');
-            document.getElementById('gameSelection').classList.remove('hidden');
-            
-            // Reset any running games
-            if (timerInterval) {
+function showGameSelection() {
+    // Hide all game sections
+    document.getElementById('memoryGame').classList.add('hidden');
+    document.getElementById('wordGame').classList.add('hidden');
+    document.getElementById('numberGame').classList.add('hidden');
+    document.getElementById('visualGame').classList.add('hidden');
+    document.getElementById('reactionGame').classList.add('hidden');
+    document.getElementById('chatbotGame').classList.add('hidden');
+    document.getElementById('gameSelection').classList.remove('hidden');
+    
+    // Reset any running games
+    if (timerInterval) {
+        clearInterval(timerInterval);
+        gameStarted = false;
+    }
+    
+    // Reset word game
+    resetGame();
+    
+    // Reset number game
+    if (numberDisplayTimeout) {
+        clearTimeout(numberDisplayTimeout);
+    }
+    numberScore = 0;
+    numberGameStarted = false;
+    document.getElementById('numberScore').textContent = '0';
+    resetNumberGame();
+}
+
+// Your existing game code starts here
+const cards = [
+    '🎮', '🎲', '🎯', '🎨', '🎭', '🎪', '🎡', '🎢',
+    '🎮', '🎲', '🎯', '🎨', '🎭', '🎪', '🎡', '🎢'
+];
+
+let flippedCards = [];
+let matchedPairs = 0;
+let isProcessing = false;
+let gameStarted = false;
+let timerInterval;
+let seconds = 0;
+
+function shuffleCards(array) {
+    return array.sort(() => Math.random() - 0.5);
+}
+
+function createCard(emoji, index) {
+    const card = document.createElement('div');
+    card.className = 'aspect-square bg-white/10 backdrop-blur-lg rounded-xl cursor-pointer transform transition-all duration-500 hover:scale-105 hover:shadow-lg hover:shadow-pink-500/25 relative [perspective:1000px]';
+    card.innerHTML = `
+        <div class="card-inner w-full h-full transition-transform duration-500 transform-style-preserve-3d relative">
+            <div class="card-front absolute w-full h-full backface-hidden bg-white/10 backdrop-blur-lg rounded-xl flex items-center justify-center">
+                
+            </div>
+            <div class="card-back absolute w-full h-full backface-hidden [transform:rotateY(180deg)] bg-white/10 backdrop-blur-lg rounded-xl flex items-center justify-center">
+                <span class="text-4xl">${emoji}</span>
+            </div>
+        </div>
+    `;
+    card.setAttribute('data-index', index);
+    card.addEventListener('click', () => flipCard(card, emoji));
+    return card;
+}
+
+function flipCard(card, emoji) {
+    if (isProcessing || !gameStarted || flippedCards.includes(card)) return;
+
+    const cardInner = card.querySelector('.card-inner');
+    cardInner.style.transform = 'rotateY(180deg)';
+    flippedCards.push(card);
+
+    if (flippedCards.length === 2) {
+        isProcessing = true;
+        const [card1, card2] = flippedCards;
+        const emoji1 = card1.querySelector('.card-back span').textContent;
+        const emoji2 = card2.querySelector('.card-back span').textContent;
+
+        if (emoji1 === emoji2) {
+            // Match found
+            matchedPairs++;
+            card1.classList.add('opacity-70');
+            card2.classList.add('opacity-70');
+            flippedCards = [];
+            isProcessing = false;
+
+            if (matchedPairs === cards.length / 2) {
                 clearInterval(timerInterval);
-                gameStarted = false;
+                setTimeout(() => {
+                    alert(`Congratulations! You completed the game in ${formatTime(seconds)}`);
+                    resetMemoryGame();
+                }, 500);
             }
-            
-            // Reset word game
-            resetGame();
-            
-            // Reset number game
-            if (numberDisplayTimeout) {
-                clearTimeout(numberDisplayTimeout);
-            }
-            numberScore = 0;
-            numberGameStarted = false;
-            document.getElementById('numberScore').textContent = '0';
-            resetNumberGame();
-        }
-
-        // Your existing game code starts here
-        const cards = [
-            '🎮', '🎲', '🎯', '🎨', '🎭', '🎪', '🎡', '🎢',
-            '🎮', '🎲', '🎯', '🎨', '🎭', '🎪', '🎡', '🎢'
-        ];
-
-        let flippedCards = [];
-        let matchedPairs = 0;
-        let isProcessing = false;
-        let gameStarted = false;
-        let timerInterval;
-        let seconds = 0;
-
-        function shuffleCards(array) {
-            return array.sort(() => Math.random() - 0.5);
-        }
-
-        function createCard(emoji, index) {
-            const card = document.createElement('div');
-            card.className = 'aspect-square bg-white/10 backdrop-blur-lg rounded-xl cursor-pointer transform transition-all duration-500 hover:scale-105 hover:shadow-lg hover:shadow-pink-500/25 relative [perspective:1000px]';
-            card.innerHTML = `
-                <div class="card-inner w-full h-full transition-transform duration-500 transform-style-preserve-3d relative">
-                    <div class="card-front absolute w-full h-full backface-hidden bg-white/10 backdrop-blur-lg rounded-xl flex items-center justify-center">
-                        
-                    </div>
-                    <div class="card-back absolute w-full h-full backface-hidden [transform:rotateY(180deg)] bg-white/10 backdrop-blur-lg rounded-xl flex items-center justify-center">
-                        <span class="text-4xl">${emoji}</span>
-                    </div>
-                </div>
-            `;
-            card.setAttribute('data-index', index);
-            card.addEventListener('click', () => flipCard(card, emoji));
-            return card;
-        }
-
-        function flipCard(card, emoji) {
-            if (isProcessing || !gameStarted || flippedCards.includes(card)) return;
-        
-            const cardInner = card.querySelector('.card-inner');
-            cardInner.style.transform = 'rotateY(180deg)';
-            flippedCards.push(card);
-        
-            if (flippedCards.length === 2) {
-                isProcessing = true;
-                checkMatch();
-            }
-        }
-
-        function checkMatch() {
-            const [card1, card2] = flippedCards;
-            const match = card1.querySelector('.card-back').innerHTML === card2.querySelector('.card-back').innerHTML;
-        
+        } else {
+            // No match
             setTimeout(() => {
-                if (match) {
-                    matchedPairs++;
-                    card1.classList.add('opacity-50');
-                    card2.classList.add('opacity-50');
-                    updateScore();
-                    if (matchedPairs === 8) endGame();
-                } else {
-                    card1.querySelector('.card-inner').style.transform = 'rotateY(0deg)';
-                    card2.querySelector('.card-inner').style.transform = 'rotateY(0deg)';
-                }
+                card1.querySelector('.card-inner').style.transform = '';
+                card2.querySelector('.card-inner').style.transform = '';
                 flippedCards = [];
                 isProcessing = false;
             }, 1000);
         }
+    }
+}
 
-        function updateScore() {
-            document.getElementById('score').textContent = matchedPairs;
-        }
+function formatTime(totalSeconds) {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+}
 
-        // Add this variable with other game variables
-        const TIME_LIMIT = 60; // 1 minute in seconds
-        
-        function updateTimer() {
-            seconds++;
-            const minutes = Math.floor(seconds / 60);
-            const remainingSeconds = seconds % 60;
-            const timeLeft = TIME_LIMIT - seconds;
-        
-            if (timeLeft <= 0) {
-                // Time's up
-                gameOver();
-                return;
-            }
-        
-            document.getElementById('timer').textContent = 
-                `${Math.floor(timeLeft / 60).toString().padStart(2, '0')}:${(timeLeft % 60).toString().padStart(2, '0')}`;
-        }
-        
-        function gameOver() {
-            gameStarted = false;
-            clearInterval(timerInterval);
-        
-            // Show game over modal
-            const modal = document.createElement('div');
-            modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center p-4';
-            modal.innerHTML = `
-                <div class="bg-white/10 backdrop-blur-lg rounded-xl p-6 max-w-md w-full">
-                    <h2 class="text-2xl font-bold text-white mb-4">Time's Up! ⏰</h2>
-                    <p class="text-gray-300 mb-4">You matched ${matchedPairs} pairs.</p>
-                    <button onclick="this.parentElement.parentElement.remove(); startGame();" 
-                            class="bg-gradient-to-r from-pink-500 to-violet-500 text-white px-6 py-2 rounded-full">
-                        Try Again
-                    </button>
-                </div>
-            `;
-            document.body.appendChild(modal);
-        }
-        
-        // Update startGame function
-        function startGame() {
-            const gameGrid = document.getElementById('gameGrid');
-            gameGrid.innerHTML = '';
-            matchedPairs = 0;
-            seconds = 0;
-            gameStarted = true;
-            updateScore();
-        
-            const shuffledCards = shuffleCards([...cards]);
-            shuffledCards.forEach((emoji, index) => {
-                gameGrid.appendChild(createCard(emoji, index));
-            });
-        
-            if (timerInterval) clearInterval(timerInterval);
-            timerInterval = setInterval(updateTimer, 1000);
-            // Initialize timer display
-            document.getElementById('timer').textContent = '01:00';
-        }
+function startTimer() {
+    seconds = 0;
+    document.getElementById('timer').textContent = formatTime(seconds);
+    timerInterval = setInterval(() => {
+        seconds++;
+        document.getElementById('timer').textContent = formatTime(seconds);
+    }, 1000);
+}
 
-        // Add these constants at the top of your script
-        const GEMINI_API_KEY = 'AIzaSyBX_AHyoRYHRB6MIvSo3u-5LpDRnL4v8kA';
-        const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent';
-        
-        // Add these variables for tracking
-        let playerStats = {
-            gamesPlayed: 0,
-            bestTime: Infinity,
-            averageTime: 0,
-            currentDifficulty: 'normal'
-        };
-        
-        // Add AI interaction functions
-        async function getGeminiResponse(prompt, endpoint = 'generate-word') {
-            try {
-                const response = await fetch(`http://localhost:5000/api/${endpoint}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ 
-                        prompt: endpoint === 'chat' ? prompt : undefined,
-                        message: endpoint === 'chat' ? prompt : undefined
-                    })
-                });
-        
-                if (!response.ok) {
-                    throw new Error(`API Error: ${response.status}`);
-                }
-        
-                const data = await response.json();
-                if (data.error) {
-                    throw new Error(data.error);
-                }
-        
-                return endpoint === 'chat' ? data.response : data.word || data.hint || data.challenge;
-            } catch (error) {
-                console.error('API Error:', error);
-                throw error;
-            }
-        }
-        
-        // async function getAIChallenge() {
-        //     const prompt = `Based on player stats:
-        //         Games played: ${playerStats.gamesPlayed}
-        //         Best time: ${playerStats.bestTime === Infinity ? 'None' : playerStats.bestTime}s
-        //         Average time: ${playerStats.averageTime}s
-        //         Current difficulty: ${playerStats.currentDifficulty}
-                
-        //         Generate a short, specific challenge for the memory game. Format: {time} seconds with {accuracy}% accuracy`;
-            
-        //     const challenge = await getGeminiResponse(prompt) || 'Complete in 60s with 90% accuracy';
-        //     document.getElementById('aiChallenge').textContent = challenge;
-        // }
-        
-        async function getAIHint() {
-            const hintButton = document.getElementById('aiHint');
-            const hintText = document.getElementById('hintText');
-            
-            hintButton.disabled = true;
-            hintText.textContent = 'Getting AI hint...';
-            hintText.classList.remove('hidden');
-        
-            const prompt = `Current game state:
-                Matched pairs: ${matchedPairs}
-                Time elapsed: ${seconds}s
-                Remaining pairs: ${8 - matchedPairs}
-                Provide a short, strategic hint for the memory game.`;
-        
-            const hint = await 'Focus on patterns and take your time!';
-            hintText.textContent = hint;
-            hintButton.disabled = false;
-        }
-        
-        // Modify your endGame function
-        // Remove the duplicate endGame function and keep the async version
-        async function endGame() {
-            gameStarted = false;
-            clearInterval(timerInterval);
-        
-            // Update player stats
-            playerStats.gamesPlayed++;
-            const gameTime = seconds;
-            playerStats.bestTime = Math.min(playerStats.bestTime, gameTime);
-            playerStats.averageTime = (playerStats.averageTime * (playerStats.gamesPlayed - 1) + gameTime) / playerStats.gamesPlayed;
-        
-            // Get AI analysis
-            // const analysisPrompt = `Analyze this memory game performance:
-            //     Time: ${gameTime}s
-            //     Best time: ${playerStats.bestTime}s
-            //     Average time: ${playerStats.averageTime.toFixed(1)}s
-            //     Games played: ${playerStats.gamesPlayed}
-                
-            //     Provide a brief, encouraging analysis and improvement suggestion.`;
-        
-            // const analysis = await getGeminiResponse(analysisPrompt) || 'Great job! Keep practicing to improve your time.';
-        
-            // Show custom end game modal
-            const modal = document.createElement('div');
-            modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center p-4';
-            modal.innerHTML = `
-                <div class="bg-white/10 backdrop-blur-lg rounded-xl p-6 max-w-md w-full">
-                    <h2 class="text-2xl font-bold text-white mb-4">Game Completed! 🎉</h2>
-                    <p class="text-gray-300 mb-4">Time: ${document.getElementById('timer').textContent}</p>
-                    <button onclick="this.parentElement.parentElement.remove(); startGame();" 
-                            class="bg-gradient-to-r from-pink-500 to-violet-500 text-white px-6 py-2 rounded-full">
-                        Play Again
-                    </button>
-                </div>
-            `;
-            document.body.appendChild(modal);
-        
-            // Generate new challenge for next game
-            await getAIChallenge();
-        }
-        
-        // Add event listener for AI hint button
-        document.getElementById('aiHint').addEventListener('click', getAIHint);
-        
-        // Modify your startGame function to include AI challenge
-        async function startGame() {
-            const gameGrid = document.getElementById('gameGrid');
-            gameGrid.innerHTML = '';
-            matchedPairs = 0;
-            seconds = 0;
-            gameStarted = true;
-            updateScore();
+function startGame() {
+    if (gameStarted) return;
+    
+    const gameGrid = document.getElementById('gameGrid');
+    gameGrid.innerHTML = '';
+    
+    const shuffledCards = shuffleCards([...cards]);
+    shuffledCards.forEach((emoji, index) => {
+        const card = createCard(emoji, index);
+        gameGrid.appendChild(card);
+    });
+    
+    matchedPairs = 0;
+    gameStarted = true;
+    startTimer();
+    
+    // Hide the start button
+    document.getElementById('startGame').classList.add('hidden');
+}
 
-            const shuffledCards = shuffleCards([...cards]);
-            shuffledCards.forEach((emoji, index) => {
-                gameGrid.appendChild(createCard(emoji, index));
-            });
+function resetMemoryGame() {
+    const gameGrid = document.getElementById('gameGrid');
+    gameGrid.innerHTML = '';
+    gameStarted = false;
+    matchedPairs = 0;
+    flippedCards = [];
+    isProcessing = false;
+    clearInterval(timerInterval);
+    document.getElementById('timer').textContent = '00:00';
+    document.getElementById('startGame').classList.remove('hidden');
+}
 
-            if (timerInterval) clearInterval(timerInterval);
-            timerInterval = setInterval(updateTimer, 1000);
-        }
+// Word Game Variables
+let wordGameScore = 0;
+let currentWord = '';
+let wordDisplayTime = 3000; // 3 seconds to start
+let wordGameLevel = 1;
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000;
 
-        // Consolidate game initialization
-        // Remove these standalone event listeners as they're duplicated
-        // Remove or comment out these lines:
-        // document.getElementById('startWordGame').addEventListener('click', startWordRound);
-        // document.getElementById('wordInput').addEventListener('keypress', (e) => {
-        //     if (e.key === 'Enter') {
-        //         checkWord();
-        //     }
-        // });
+// Function to get a word from the API
+async function getWordFromAI() {
+    try {
+        document.getElementById('wordDisplay').innerHTML = `
+            <div class="text-white mb-4">
+                Loading word...
+            </div>
+        `;
         
-        // Keep only one DOMContentLoaded event listener and modify it
-        // Update the DOMContentLoaded event listener
-        document.addEventListener('DOMContentLoaded', () => {
-        // Memory Game initialization
-        const startGameButton = document.getElementById('startGame');
-        if (startGameButton) {
-            startGameButton.addEventListener('click', startGame);
-        }
-        
-        // Word Game initialization
-        const startWordGameButton = document.getElementById('startWordGame');
-        const wordInput = document.getElementById('wordInput');
-        
-        if (startWordGameButton) {
-            startWordGameButton.addEventListener('click', () => {
-                startWordRound();
-            });
-        }
-        
-        if (wordInput) {
-            wordInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' && !wordInput.classList.contains('hidden')) {
-                    e.preventDefault();
-                    checkWord();
-                }
-            });
-        }
-        
-        // Initialize AI hint button
-        const aiHintButton = document.getElementById('aiHint');
-        if (aiHintButton) {
-            aiHintButton.addEventListener('click', getAIHint);
-        }
-        
-        // Initialize word game
-        resetGame();
-        
-        // Chatbot Game initialization
-        const chatInput = document.getElementById('chatInput');
-        const sendButton = document.getElementById('sendMessage');
-        
-        if (chatInput && sendButton) {
-            sendButton.addEventListener('click', sendChatMessage);
-            chatInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    sendChatMessage();
-                }
-            });
-        }
+        // Use relative URL that works in any environment
+        const response = await fetch('/api/generate-word', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({})
         });
 
-            // Add this to your script section
-    // Word Game Variables
-    let wordGameLevel = 1;
-    let wordGameScore = 0;
-    let currentWord = '';
-    let wordDisplayTime = 3000; // Starting display time in milliseconds
-
-    // Add these constants at the top of your script
-    const MAX_RETRIES = 3;
-    const RETRY_DELAY = 2000;
-
-    async function getWordFromAI(retryCount = 0) {
-        const difficultyLevel = wordGameLevel < 5 ? 'simple' : 'challenging';
-        const minLength = wordGameLevel * 2;
-        const maxLength = wordGameLevel * 3;
-        
-        const prompt = `Generate a unique, interesting ${difficultyLevel} word between ${minLength}-${maxLength} letters that would be suitable for a memory game. The word should be related to one of these themes: technology, nature, science, arts, or adventure. Return only the word in capital letters without any additional text or punctuation.`;
-        
-        try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
-
-            const response = await fetch(GEMINI_API_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${GEMINI_API_KEY}`
-                },
-                body: JSON.stringify({
-                    contents: [{
-                        parts: [{ text: prompt }]
-                    }]
-                }),
-                signal: controller.signal
-            });
-
-            clearTimeout(timeoutId);
-
-            if (!response.ok) {
-                throw new Error(`API Error: ${response.status}`);
-            }
-
-            const data = await response.json();
-            const word = data.candidates[0]?.content?.parts[0]?.text?.trim().toUpperCase();
-
-            if (!word || word.length < minLength || word.length > maxLength) {
-                throw new Error('Invalid word received');
-            }
-
-            return word;
-        } catch (error) {
-            console.error('Error getting word from AI:', error);
-            
-            // Update UI with specific error message
-            const wordDisplay = document.getElementById('wordDisplay');
-            const errorMessage = error.name === 'AbortError' 
-                ? 'Request timeout. Retrying...'
-                : 'Network error. Retrying...';
-            
-            wordDisplay.innerHTML = `
-                <div class="text-red-400 mb-4">
-                    ⚠️ ${errorMessage}
-                    ${retryCount > 0 ? `(Attempt ${retryCount}/${MAX_RETRIES})` : ''}
-                </div>
-            `;
-            
-            // Check retry count
-            if (retryCount < MAX_RETRIES) {
-                await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
-                return getWordFromAI(retryCount + 1);
-            } else {
-                // If all retries failed, show error and provide fallback
-                wordDisplay.innerHTML = `
-                    <div class="text-red-400 mb-4">
-                        ⚠️ Unable to connect to AI service. 
-                        <button onclick="retryWordGame()" class="underline ml-2 hover:text-pink-500">
-                            Try Again
-                        </button>
-                    </div>
-                `;
-                throw new Error('Max retries reached');
-            }
+        if (!response.ok) {
+            throw new Error(`API Error: ${response.status}`);
         }
-    }
 
-    // Add this helper function to retry the game
-    function retryWordGame() {
+        const data = await response.json();
+        if (data.error) {
+            throw new Error(data.error);
+        }
+
+        return data.word;
+    } catch (error) {
+        console.error('Error getting word from API:', error);
+        
+        // Update UI with error message
+        const errorMessage = document.getElementById('errorMessage');
+        const errorText = document.getElementById('errorText');
+        
+        errorText.textContent = 'Error loading word. Please try again.';
+        errorMessage.classList.remove('hidden');
+        
+        // Use fallback words if API fails
+        const fallbackWords = ["MEMORY", "PUZZLE", "GENIUS", "WIZARD", "MASTER", "RECALL", "MENTAL", "FOCUS"];
+        return fallbackWords[Math.floor(Math.random() * fallbackWords.length)];
+    }
+}
+
+async function startWordRound() {
+    try {
         const startButton = document.getElementById('startWordGame');
-        startButton.classList.remove('hidden');
-        document.getElementById('wordDisplay').innerHTML = '';
-    }
-
-    // Remove the generateFallbackWord function as we'll always use AI
-
-    async function startWordRound() {
-        const wordDisplay = document.getElementById('wordDisplay');
         const wordInput = document.getElementById('wordInput');
-        const startButton = document.getElementById('startWordGame');
+        const errorMessage = document.getElementById('errorMessage');
         
-        // Prevent multiple calls while processing
-        if (window.isProcessingRound) return;
-        window.isProcessingRound = true;
-        
-        // Clear everything at start
-        wordDisplay.innerHTML = '';
-        wordInput.value = '';
-        wordInput.classList.add('hidden');
         startButton.classList.add('hidden');
+        wordInput.classList.add('hidden');
+        errorMessage.classList.add('hidden');
         
-        try {
-            // Show loading state
-            wordDisplay.className = 'text-4xl font-bold text-white mb-8 min-h-[100px] flex items-center justify-center animate__animated';
-            wordDisplay.innerHTML = '<div class="animate__animated animate__pulse">Generating word...</div>';
-    
-            const response = await fetch('http://localhost:5000/api/generate-word', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-    
-            const data = await response.json();
-            if (data.error) throw new Error(data.error);
-            
-            currentWord = data.word;
-            
-            // Show the word
-            wordDisplay.innerHTML = `<div class="animate__animated animate__fadeIn">${currentWord}</div>`;
-            
-            // Wait for word display duration
-            await new Promise(resolve => {
-                window.wordDisplayTimeout = setTimeout(resolve, 2000);
-            });
-            
-            // Show input prompt
-            wordDisplay.innerHTML = '<div class="animate__animated animate__fadeIn">Type the word you saw</div>';
+        // Get a word from the API
+        currentWord = await getWordFromAI();
+        
+        if (!currentWord) {
+            throw new Error('No word received');
+        }
+        
+        // Display the word
+        document.getElementById('wordDisplay').textContent = currentWord;
+        
+        // Hide the word after a delay
+        setTimeout(() => {
+            document.getElementById('wordDisplay').textContent = '';
             wordInput.classList.remove('hidden');
+            wordInput.value = '';
             wordInput.focus();
-            
-        } catch (error) {
-            console.error('Error:', error);
-            wordDisplay.innerHTML = '<div class="text-red-400">Error loading word. Please try again.</div>';
-            startButton.classList.remove('hidden');
-        } finally {
-            window.isProcessingRound = false;
-        }
+        }, wordDisplayTime);
+        
+    } catch (error) {
+        console.error('Error starting word round:', error);
+        document.getElementById('startWordGame').classList.remove('hidden');
     }
+}
 
-    // Update showFailure to properly clean up
-    function showFailure() {
-        if (window.wordDisplayTimeout) {
-            clearTimeout(window.wordDisplayTimeout);
-        }
-        window.isProcessingRound = false;
-        
-        const wordDisplay = document.getElementById('wordDisplay');
-        const wordInput = document.getElementById('wordInput');
-        const startButton = document.getElementById('startWordGame');
-        
-        wordDisplay.innerHTML = `<div class="animate__animated animate__shakeX text-red-400">❌ Wrong! The word was: ${currentWord}</div>`;
-        wordInput.classList.add('hidden');
-        
-        wordGameScore = 0;
+function checkWord() {
+    const input = document.getElementById('wordInput');
+    const userGuess = input.value.trim().toLowerCase();
+    const wordDisplay = document.getElementById('wordDisplay');
+    
+    if (userGuess === currentWord.toLowerCase()) {
+        // Increase score by 10 points
+        wordGameScore += 10;
         updateScore();
-        currentWord = '';
-        
-        setTimeout(() => {
-            startButton.classList.remove('hidden');
-        }, 2000);
+        showSuccess();
+    } else {
+        showFailure();
     }
+}
 
-    function checkWord() {
-        const input = document.getElementById('wordInput');
-        const userGuess = input.value.trim().toLowerCase();
-        const wordDisplay = document.getElementById('wordDisplay');
-        
-        if (userGuess === currentWord.toLowerCase()) {
-            // Increase score by 10 points
-            wordGameScore += 10;
-            updateScore();
-            showSuccess();
-        } else {
-            showFailure();
-        }
-    }
+function showSuccess() {
+    const wordDisplay = document.getElementById('wordDisplay');
+    const wordInput = document.getElementById('wordInput');
+    
+    wordDisplay.innerHTML = '<div class="animate__animated animate__bounceIn text-green-400">🎉 Correct! +10 points!</div>';
+    wordInput.classList.add('hidden');
+    
+    // Start next round after delay
+    setTimeout(() => {
+        startWordRound();
+    }, 1500);
+}
 
-    function showSuccess() {
-        const wordDisplay = document.getElementById('wordDisplay');
-        const wordInput = document.getElementById('wordInput');
-        
-        wordDisplay.innerHTML = '<div class="animate__animated animate__bounceIn text-green-400">🎉 Correct! +10 points!</div>';
-        wordInput.classList.add('hidden');
-        
-        // Start next round after delay
-        setTimeout(() => {
-            startWordRound();
-        }, 1500);
-    }
-
-    function showFailure() {
-        const wordDisplay = document.getElementById('wordDisplay');
-        const wordInput = document.getElementById('wordInput');
-        const startButton = document.getElementById('startWordGame');
-        
-        wordDisplay.innerHTML = `<div class="animate__animated animate__shakeX text-red-400">❌ Wrong! The word was: ${currentWord}</div>`;
-        wordInput.classList.add('hidden');
-        
-        // Reset score to zero when answer is wrong
-        wordGameScore = 0;
-        updateScore();
-        
-        // Show start button after delay
-        setTimeout(() => {
-            startButton.classList.remove('hidden');
-        }, 2000);
-    }
-
-    function updateScore() {
-        const scoreElement = document.getElementById('wordScore');
-        scoreElement.textContent = wordGameScore;
-    }
-
-    function resetGame() {
-        wordGameScore = 0;
-        currentWord = '';
-        updateScore();
-        const wordInput = document.getElementById('wordInput');
-        const startButton = document.getElementById('startWordGame');
-        const wordDisplay = document.getElementById('wordDisplay');
-        
-        wordInput.classList.add('hidden');
-        wordInput.value = '';
+function showFailure() {
+    const wordDisplay = document.getElementById('wordDisplay');
+    const wordInput = document.getElementById('wordInput');
+    const startButton = document.getElementById('startWordGame');
+    
+    wordDisplay.innerHTML = `<div class="animate__animated animate__shakeX text-red-400">❌ Wrong! The word was: ${currentWord}</div>`;
+    wordInput.classList.add('hidden');
+    
+    // Reset score to zero when answer is wrong
+    wordGameScore = 0;
+    updateScore();
+    
+    // Show start button after delay
+    setTimeout(() => {
         startButton.classList.remove('hidden');
-        wordDisplay.innerHTML = '';
-    }
+    }, 2000);
+}
 
-    // Add event listeners when the document loads
-    document.addEventListener('DOMContentLoaded', () => {
-        const startWordGameButton = document.getElementById('startWordGame');
-        const wordInput = document.getElementById('wordInput');
+function updateScore() {
+    const scoreElement = document.getElementById('wordScore');
+    scoreElement.textContent = wordGameScore;
+}
 
-        // Reset game state when initializing
-        resetGame();
-
-        if (startWordGameButton) {
-            startWordGameButton.addEventListener('click', startWordRound);
-        }
-
-        if (wordInput) {
-            wordInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' && !wordInput.classList.contains('hidden')) {
-                    e.preventDefault();
-                    checkWord();
-                }
-            });
-        }
-    });
-
-// Add at the top with other variables
-const usedWords = new Set();
-
-// Add the resetGame function
 function resetGame() {
     wordGameLevel = 1;
     wordGameScore = 0;
     currentWord = '';
-    usedWords.clear();
     updateScore();
-    resetWordRound();
+    const wordInput = document.getElementById('wordInput');
+    const startButton = document.getElementById('startWordGame');
+    const wordDisplay = document.getElementById('wordDisplay');
+    const errorMessage = document.getElementById('errorMessage');
+    
+    wordInput.classList.add('hidden');
+    wordInput.value = '';
+    startButton.classList.remove('hidden');
+    wordDisplay.innerHTML = '';
+    errorMessage.classList.add('hidden');
 }
 
-// Fix the DOMContentLoaded event listener (remove duplicate wordInput)
-document.addEventListener('DOMContentLoaded', () => {
-    // Memory Game initialization
-    const startGameButton = document.getElementById('startGame');
-    if (startGameButton) {
-        startGameButton.addEventListener('click', startGame);
-    }
-
-    // Word Game initialization
-    const startWordGameButton = document.getElementById('startWordGame');
-    const wordInput = document.getElementById('wordInput');
-
-    if (startWordGameButton) {
-        startWordGameButton.addEventListener('click', startWordRound);
-    }
-
-    if (wordInput) {
-        wordInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !wordInput.classList.contains('hidden')) {
-                e.preventDefault();
-                checkWord();
-            }
-        });
-    }
-
-    // Initialize word game
-    resetGame();
-});
-
-// Keep only this version of getWordFromAI and remove the other one
-async function getWordFromAI() {
-    try {
-        let attempts = 0;
-        
-        while (attempts < 5) {
-            const response = await fetch('http://localhost:5000/api/generate-word', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    prompt: `Level ${wordGameLevel} word`
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error(`API Error: ${response.status}`);
-            }
-
-            const data = await response.json();
-            if (data.error) {
-                throw new Error(data.error);
-            }
-
-            const newWord = data.word;
-            
-            // Validate word
-            if (newWord && newWord.length >= 4 && !usedWords.has(newWord)) {
-                usedWords.add(newWord);
-                return newWord;
-            }
-            
-            attempts++;
-        }
-        throw new Error('Could not generate valid word');
-    } catch (error) {
-        console.error('Error getting word from AI:', error);
-        throw error;
-    }
+function retryWordGame() {
+    document.getElementById('errorMessage').classList.add('hidden');
+    startWordRound();
 }
 
 // Number Game Variables
@@ -799,38 +409,7 @@ function retryNumberGame() {
     resetNumberGame();
 }
 
-// Add to your existing DOMContentLoaded event listener
-document.addEventListener('DOMContentLoaded', () => {
-    // Number Game initialization
-    const startNumberGameButton = document.getElementById('startNumberGame');
-    const numberInput = document.getElementById('numberInput');
-
-    if (startNumberGameButton) {
-        startNumberGameButton.addEventListener('click', () => {
-            if (!numberGameStarted) {
-                startNumberRound();
-                numberGameStarted = true;
-            } else {
-                checkNumber();
-            }
-        });
-    }
-
-    if (numberInput) {
-        numberInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && numberGameStarted) {
-                e.preventDefault();
-                checkNumber();
-            }
-        });
-    }
-
-    // Initialize number game
-    resetNumberGame();
-});
-    
-//grid master
-// Add at the top with other game variables
+// Visual Game Variables
 let visualGameLevel = 1;
 let visualScore = 0;
 let visualLives = 3;
@@ -866,7 +445,8 @@ function createVisualGrid() {
 
     for (let i = 0; i < size * size; i++) {
         const cell = document.createElement('div');
-        cell.className = 'w-16 h-16 bg-white/10 backdrop-blur-lg rounded-lg cursor-pointer transform transition-all duration-300 hover:scale-105';
+        // Enhanced cell styling with hover effects
+        cell.className = 'w-16 h-16 bg-white/10 backdrop-blur-lg rounded-lg cursor-pointer transform transition-all duration-300 hover:scale-105 hover:bg-pink-500/30 hover:shadow-lg hover:shadow-pink-500/25';
         cell.setAttribute('data-index', i);
         cell.addEventListener('click', () => handleCellClick(i));
         grid.appendChild(cell);
@@ -922,25 +502,6 @@ function handleCellClick(index) {
 
     userPattern.push(index);
     checkPattern();
-}
-
-function createVisualGrid() {
-    const grid = document.getElementById('visualGrid');
-    const size = visualGameLevel <= 2 ? 3 : 
-                 visualGameLevel <= 4 ? 4 : 
-                 visualGameLevel <= 6 ? 5 : 6;
-    
-    grid.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
-    grid.innerHTML = '';
-
-    for (let i = 0; i < size * size; i++) {
-        const cell = document.createElement('div');
-        // Enhanced cell styling with hover effects
-        cell.className = 'w-16 h-16 bg-white/10 backdrop-blur-lg rounded-lg cursor-pointer transform transition-all duration-300 hover:scale-105 hover:bg-pink-500/30 hover:shadow-lg hover:shadow-pink-500/25';
-        cell.setAttribute('data-index', i);
-        cell.addEventListener('click', () => handleCellClick(i));
-        grid.appendChild(cell);
-    }
 }
 
 function checkPattern() {
@@ -1005,28 +566,7 @@ function gameOverVisual() {
     document.body.appendChild(modal);
 }
 
-// Add to your DOMContentLoaded event listener
-document.addEventListener('DOMContentLoaded', () => {
-    // Visual Game initialization
-    const startVisualGameButton = document.getElementById('startVisualGame');
-    if (startVisualGameButton) {
-        startVisualGameButton.addEventListener('click', startVisualGame);
-    }
-
-    // Initialize visual game stats
-    const visualLevelElement = document.getElementById('visualLevel');
-    const visualScoreElement = document.getElementById('visualScore');
-    const visualLivesElement = document.getElementById('visualLives');
-    
-    if (visualLevelElement && visualScoreElement && visualLivesElement) {
-        visualLevelElement.textContent = '1';
-        visualScoreElement.textContent = '0';
-        visualLivesElement.textContent = '❤️❤️❤️';
-    }
-});
-
-// reaction time
-// Add at the top with other game variables
+// Reaction Game Variables
 let reactionStartTime = 0;
 let reactionTimeout = null;
 let bestReactionTime = Infinity;
@@ -1080,17 +620,6 @@ function handleReactionClick() {
     isReactionGameStarted = false;
 }
 
-// Add to your DOMContentLoaded event listener
-document.addEventListener('DOMContentLoaded', () => {
-    // ... existing code ...
-
-    // Reaction Game initialization
-    const startReactionGameButton = document.getElementById('startReactionGame');
-    if (startReactionGameButton) {
-        startReactionGameButton.addEventListener('click', startReactionGame);
-    }
-});
-
 // Chatbot Game Variables
 let chatGameState = {
     isPlaying: false,
@@ -1112,14 +641,29 @@ async function sendChatMessage() {
     chatInput.value = '';
     
     try {
-        // Get AI response
-        const response = await getGeminiResponse(message, 'chat');
+        // Get AI response using relative URL
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ message: message })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`API Error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        if (data.error) {
+            throw new Error(data.error);
+        }
         
         // Add bot response to chat
-        addMessageToChat(response, 'bot');
+        addMessageToChat(data.response, 'bot');
         
         // Handle game state based on response
-        handleGameState(response);
+        handleGameState(data.response);
     } catch (error) {
         console.error('Chat error:', error);
         addMessageToChat('Sorry, I encountered an error. Please try again.', 'bot');
@@ -1151,9 +695,77 @@ function handleGameState(response) {
     }
 }
 
-// Initialize Chatbot Game
+// Initialize all games when the document loads
 document.addEventListener('DOMContentLoaded', () => {
-    // ... existing initialization code ...
+    // Memory Game initialization
+    const startGameButton = document.getElementById('startGame');
+    if (startGameButton) {
+        startGameButton.addEventListener('click', startGame);
+    }
+
+    // Word Game initialization
+    const startWordGameButton = document.getElementById('startWordGame');
+    const wordInput = document.getElementById('wordInput');
+
+    if (startWordGameButton) {
+        startWordGameButton.addEventListener('click', startWordRound);
+    }
+
+    if (wordInput) {
+        wordInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !wordInput.classList.contains('hidden')) {
+                e.preventDefault();
+                checkWord();
+            }
+        });
+    }
+
+    // Number Game initialization
+    const startNumberGameButton = document.getElementById('startNumberGame');
+    const numberInput = document.getElementById('numberInput');
+
+    if (startNumberGameButton) {
+        startNumberGameButton.addEventListener('click', () => {
+            if (!numberGameStarted) {
+                startNumberRound();
+                numberGameStarted = true;
+            } else {
+                checkNumber();
+            }
+        });
+    }
+
+    if (numberInput) {
+        numberInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && numberGameStarted) {
+                e.preventDefault();
+                checkNumber();
+            }
+        });
+    }
+
+    // Visual Game initialization
+    const startVisualGameButton = document.getElementById('startVisualGame');
+    if (startVisualGameButton) {
+        startVisualGameButton.addEventListener('click', startVisualGame);
+    }
+
+    // Initialize visual game stats
+    const visualLevelElement = document.getElementById('visualLevel');
+    const visualScoreElement = document.getElementById('visualScore');
+    const visualLivesElement = document.getElementById('visualLives');
+    
+    if (visualLevelElement && visualScoreElement && visualLivesElement) {
+        visualLevelElement.textContent = '1';
+        visualScoreElement.textContent = '0';
+        visualLivesElement.textContent = '❤️❤️❤️';
+    }
+
+    // Reaction Game initialization
+    const startReactionGameButton = document.getElementById('startReactionGame');
+    if (startReactionGameButton) {
+        startReactionGameButton.addEventListener('click', startReactionGame);
+    }
     
     // Chatbot Game initialization
     const chatInput = document.getElementById('chatInput');
@@ -1161,10 +773,16 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (chatInput && sendButton) {
         sendButton.addEventListener('click', sendChatMessage);
-        chatInput.addEventListener('keypress', (e) => {
+        chatInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
+                e.preventDefault();
                 sendChatMessage();
             }
         });
     }
+
+    // Initialize all games
+    resetGame();
+    resetNumberGame();
+    resetMemoryGame();
 });
