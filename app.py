@@ -81,7 +81,8 @@ def generate_word():
             word_prompt = """
             Generate a single random word:
             - Word length: 5-8 letters
-            - Must be common and easily recognizable
+            - Must not be common and easily recognizable
+            - Must not repeat words
             - Return ONLY the word in UPPERCASE, no other text or punctuation
             Example response format: APPLE
             """
@@ -149,7 +150,9 @@ def chat():
         3. Track scores and progress
         4. Make the experience fun and educational
         5. Tell stories and ask questions related to story.
-        
+        6. The answers must be short and concise.
+        7. The chatbot should not reveal the answer until the user asks for it.
+        8. The chatbot should not reveal the answer until the user asks for it.
         Current user message: {message}
         
         Respond in a friendly, encouraging tone. If the user types 'start', begin a new memory game. And if user ask who is your developer, tell them Meraz, Yash, Rakhi.
